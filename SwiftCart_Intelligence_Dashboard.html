@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SwiftCart Intelligence · Decision Analytics</title>
+<style>
+  :root{
+    --bg:#f3f6f4; --panel:#ffffff; --panel2:#f8faf9; --border:#e6ede9;
+    --text:#1f2937; --sub:#6b7686; --accent:#1f9d55; --accent-dark:#15803d; --accent-light:#e6f6ec;
+    --accent2:#0ea5b7;
+    --red:#e0483f; --red-bg:#fdecec; --orange:#e08a2b; --orange-bg:#fdf3e3;
+    --green:#1f9d55; --green-bg:#e6f6ec;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.04);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);}
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{width:236px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);
+            padding:22px 16px;position:sticky;top:0;height:100vh;}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 6px 22px 6px;margin-bottom:10px;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--accent);
+              display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:14px;}
+  .brand-name{font-weight:700;font-size:16px;letter-spacing:.1px;color:var(--text);}
+  .brand-sub{font-size:11px;color:var(--sub);margin-top:1px;}
+  .navgroup-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#9aa4b2;
+                   margin:18px 10px 8px 10px;font-weight:600;}
+  .navitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;
+           font-size:14px;color:var(--sub);margin-bottom:3px;transition:background .12s,color .12s;font-weight:500;}
+  .navitem:hover{background:var(--accent-light);color:var(--accent-dark);}
+  .navitem.active{background:var(--accent);color:#fff;font-weight:600;}
+  .navitem .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex-shrink:0;}
+  .navitem.active .dot{opacity:1;}
+
+  /* Header */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;
+          background:var(--panel);border-bottom:1px solid var(--border);}
+  .topbar-search{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);
+                 border-radius:10px;padding:9px 14px;font-size:13.5px;color:var(--sub);min-width:280px;}
+  .topbar-search svg{flex-shrink:0;color:#9aa4b2;}
+  .topbar-right{display:flex;align-items:center;gap:18px;}
+  .topbar-icon{width:36px;height:36px;border-radius:10px;background:var(--panel2);display:flex;align-items:center;
+               justify-content:center;font-size:15px;border:1px solid var(--border);color:var(--sub);}
+  .user-chip{display:flex;align-items:center;gap:10px;}
+  .user-avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;
+               display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .user-name{font-size:13.5px;font-weight:600;color:var(--text);}
+  .user-role{font-size:11px;color:var(--sub);}
+
+  /* Main */
+  .main{flex:1;padding:26px 32px 60px 32px;max-width:1180px;}
+  .pagehead{margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .pagehead h1{font-size:22px;margin:0 0 5px 0;font-weight:700;color:var(--text);}
+  .pagehead p{margin:0;color:var(--sub);font-size:13.5px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* KPI cards */
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
+  .kpi-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);}
+  .kpi-label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;font-weight:600;}
+  .kpi-value{font-size:23px;font-weight:700;color:var(--text);}
+
+  /* Cards */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px;
+        margin-bottom:20px;box-shadow:var(--shadow);}
+  .card-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--text);}
+  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .badge.count{background:var(--accent-light);color:var(--accent-dark);}
+  table.alerts{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.alerts th{text-align:left;font-size:10.5px;text-transform:uppercase;color:#9aa4b2;
+                   letter-spacing:.05em;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;}
+  table.alerts td{padding:13px 12px;border-bottom:1px solid var(--border);}
+  table.alerts tr:last-child td{border-bottom:none;}
+  table.alerts tr.clickable{cursor:pointer;transition:background .12s;}
+  table.alerts tr.clickable:hover{background:var(--panel2);}
+  .sev{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12px;padding:4px 11px;border-radius:20px;}
+  .sev.Critical{background:var(--red-bg);color:var(--red);}
+  .sev.High{background:var(--orange-bg);color:var(--orange);}
+  .sev.Watch{background:var(--orange-bg);color:var(--orange);}
+  .impact-neg{color:var(--red);font-weight:700;}
+  .impact-pos{color:var(--sub);}
+
+  /* City health grid */
+  .city-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+  .city-card{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:16px;
+             cursor:pointer;transition:box-shadow .12s,transform .12s;}
+  .city-card:hover{box-shadow:var(--shadow);transform:translateY(-1px);}
+  .city-card .cname{font-weight:700;font-size:14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;color:var(--text);}
+  .status-dot{width:9px;height:9px;border-radius:50%;}
+  .status-dot.green{background:var(--green);}
+  .status-dot.orange{background:var(--orange);}
+  .status-dot.red{background:var(--red);}
+  .city-card .cstatus{font-size:12px;color:var(--sub);}
+
+  /* Controls row */
+  .controls{display:flex;gap:12px;margin-bottom:18px;}
+  select{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;
+         padding:9px 14px;font-size:13.5px;min-width:160px;font-weight:500;}
+
+  /* chart */
+  .chart-wrap{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
+  .legend{display:flex;gap:18px;font-size:12px;color:var(--sub);margin-bottom:10px;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend .sw{width:14px;height:3px;border-radius:2px;display:inline-block;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .stat-box{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
+  .stat-box .label{font-size:11px;color:var(--sub);text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+  .stat-box .val{font-size:15px;font-weight:600;line-height:1.5;color:var(--text);}
+
+  /* driver bars */
+  .driver-row{display:grid;grid-template-columns:170px 1fr 60px;align-items:center;gap:10px;margin-bottom:12px;font-size:13px;color:var(--text);}
+  .driver-track{background:#eef1ef;border-radius:6px;height:14px;overflow:hidden;}
+  .driver-fill{height:100%;border-radius:6px;background:var(--accent);}
+  .driver-fill.primary{background:var(--red);}
+
+  .flow{display:flex;flex-direction:column;gap:0;margin:14px 0;}
+  .flow-step{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent);
+             border-radius:10px;padding:11px 14px;font-size:13.5px;color:var(--text);}
+  .flow-arrow{text-align:center;color:var(--sub);font-size:13px;padding:3px 0;}
+
+  .caveat{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent2);
+          border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--sub);margin-top:14px;line-height:1.65;}
+
+  /* Memo */
+  .memo-card{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px;}
+  .memo-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .memo-title{font-weight:700;font-size:14.5px;color:var(--text);}
+  .memo-sub{font-size:13.5px;color:var(--sub);margin-bottom:10px;}
+  .memo-line{font-size:13.5px;margin-bottom:6px;line-height:1.6;color:var(--text);}
+  .memo-line b{color:var(--text);}
+  .priority{font-size:10.5px;font-weight:700;padding:3px 11px;border-radius:20px;}
+  .priority.Immediate{background:var(--red-bg);color:var(--red);}
+  .priority.Monitor{background:var(--orange-bg);color:var(--orange);}
+
+  .btn{background:var(--accent);color:#fff;border:none;padding:11px 20px;border-radius:10px;
+       font-weight:600;font-size:13.5px;cursor:pointer;box-shadow:var(--shadow);}
+  .btn:hover{background:var(--accent-dark);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">SC</div>
+      <div>
+        <div class="brand-name">SwiftCart</div>
+        <div class="brand-sub">Decision Analytics</div>
+      </div>
+    </div>
+    <div class="navgroup-label">Workflow</div>
+    <div class="navitem active" data-view="command"><span class="dot"></span>Executive Command Center</div>
+    <div class="navitem" data-view="investigate"><span class="dot"></span>Investigate</div>
+    <div class="navitem" data-view="rootcause"><span class="dot"></span>Root Cause Analysis</div>
+    <div class="navitem" data-view="brief"><span class="dot"></span>Executive Brief</div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <div class="topbar">
+      <div class="topbar-search" style="position:relative;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input id="topbar-search-input" type="text" placeholder="Search city, metric, or issue…"
+               style="border:none;background:transparent;outline:none;font-size:13.5px;color:var(--text);width:100%;font-family:inherit;">
+        <div id="search-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:100%;
+             background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);
+             z-index:20;overflow:hidden;"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-icon" id="bell-icon" onclick="goToCommandCenter()" style="cursor:pointer;position:relative;" title="View active alerts">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--sub);">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span id="bell-badge" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;
+              font-size:9.5px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;
+              align-items:center;justify-content:center;"></span>
+        </div>
+        <div class="user-chip">
+          <div class="user-avatar">RG</div>
+          <div>
+            <div class="user-name">Rivi Gaur</div>
+            <div class="user-role">SwiftCart Analytics</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div class="main">
+
+
+    <!-- SCREEN 1: COMMAND CENTER -->
+    <div class="view active" id="view-command">
+      <div class="pagehead">
+        <h1>Executive Command Center</h1>
+        <p>SwiftCart Operations · 6 cities monitored from Jan to Jun 2026</p>
+      </div>
+
+      <div class="controls" style="margin-bottom:18px;">
+        <select id="filter-period"><option>Last 180 days</option><option>Last 90 days</option><option>Last 30 days</option></select>
+        <select id="filter-city"></select>
+        <select id="filter-metric">
+          <option value="all">All Metrics</option>
+          <option value="revenue">Revenue</option>
+          <option value="delivery">Delivery Time</option>
+          <option value="stockout">Stockout Rate</option>
+          <option value="churn">Churn Rate</option>
+        </select>
+      </div>
+
+      <div class="kpi-row" id="kpi-row"></div>
+
+      <div class="card">
+        <div class="card-title">Active Business Alerts <span class="badge count clickable" id="alert-count" style="cursor:pointer;" onclick="goToTopIssue()"></span></div>
+        <table class="alerts">
+          <thead><tr><th>Severity</th><th>City</th><th>Issue</th><th>Est. Impact</th><th></th></tr></thead>
+          <tbody id="alerts-body"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">City Health</div>
+        <div class="city-grid" id="city-grid"></div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: INVESTIGATE -->
+    <div class="view" id="view-investigate">
+      <div class="pagehead">
+        <h1>Investigate</h1>
+        <p>Drill into any city's metric trend against its rolling baseline and control limits.</p>
+      </div>
+      <div class="controls">
+        <select id="inv-city"></select>
+        <select id="inv-metric">
+          <option value="revenue">Revenue</option>
+        </select>
+      </div>
+      <div class="chart-wrap">
+        <div class="legend">
+          <span><i class="sw" style="background:#9aa89f"></i>Baseline</span>
+          <span><i class="sw" style="background:#0ea5b7"></i>Actual</span>
+          <span><i class="sw" style="background:#c9d3ce;border-top:1px dashed #c9d3ce;height:0"></i>Control Limits</span>
+          <span><i class="sw" style="background:#e0483f"></i>Anomaly</span>
+        </div>
+        <svg id="chart-svg" width="100%" height="280" viewBox="0 0 1000 280" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="label">What Changed?</div><div class="val" id="inv-what"></div></div>
+        <div class="stat-box"><div class="label">When?</div><div class="val" id="inv-when"></div></div>
+        <div class="stat-box"><div class="label">How Unusual?</div><div class="val" id="inv-unusual"></div></div>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: ROOT CAUSE -->
+    <div class="view" id="view-rootcause">
+      <div class="pagehead">
+        <h1>Root Cause Analysis</h1>
+        <p>Ranked candidate drivers, estimated business impact, and the recommended next step.</p>
+      </div>
+      <div class="controls">
+        <select id="rc-city"></select>
+      </div>
+
+      <div class="card">
+        <div class="card-title" id="rc-headline"></div>
+        <div class="stat-grid" style="margin-bottom:18px;">
+          <div class="stat-box"><div class="label">Est. Revenue Impact</div><div class="val" id="rc-impact"></div></div>
+          <div class="stat-box"><div class="label">Orders Affected</div><div class="val" id="rc-orders"></div></div>
+          <div class="stat-box"><div class="label">Anomaly Duration</div><div class="val" id="rc-duration"></div></div>
+        </div>
+
+        <div class="card-title" style="margin-bottom:10px;">Potential Drivers (Ranked by Deviation)</div>
+        <div id="rc-drivers"></div>
+
+        <div class="caveat" id="rc-caveat"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Investigation Path</div>
+        <div class="flow" id="rc-flow"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recommended Action</div>
+        <div id="rc-action" style="font-size:13.5px;line-height:1.6;"></div>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: EXECUTIVE BRIEF -->
+    <div class="view" id="view-brief">
+      <div class="pagehead">
+        <h1>Executive Brief</h1>
+        <p>A ranked summary of this period's key findings and recommended actions.</p>
+      </div>
+      <button class="btn" id="gen-brief-btn">Generate Executive Brief</button>
+      <div id="brief-output" style="margin-top:18px;"></div>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+
+<script id="data-json" type="application/json">
+{"kpis": {"total_revenue_cr": 66.84, "total_orders_k": 2047, "avg_delivery_time": 24.5, "avg_churn": 4.97, "avg_stockout": 3.32}, "cities": {"Bangalore": {"status": "issue", "severity": "High", "confidence": "Medium", "anomaly_days": 14, "date_start": "16 Jan", "date_end": "08 Jun", "revenue_impact": -47818, "orders_affected": 1167, "primary_driver": "Competitor Activity", "primary_driver_pct": 18.6, "driver_bars": [{"driver": "Competitor Activity", "pct_deviation": 18.6, "strength_pct": 100.0}, {"driver": "Stockout Rate", "pct_deviation": -4.1, "strength_pct": 22.0}, {"driver": "Customer Churn Rate", "pct_deviation": -1.9, "strength_pct": 10.0}, {"driver": "Delivery Time", "pct_deviation": 1.2, "strength_pct": 7.0}, {"driver": "Rider Availability", "pct_deviation": -0.3, "strength_pct": 2.0}], "dates": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29"], "revenue": [831641, 801510, 882393, 871720, 781688, 877415, 939859, 807546, 772263, 1007483, 1107768, 794191, 774071, 832726, 820775, 792647, 908618, 977970, 842309, 818128, 835954, 829278, 812070, 971978, 966500, 802992, 847444, 837122, 743989, 849011, 967529, 902071, 803974, 923396, 798038, 843728, 728013, 941407, 1047072, 861713, 831666, 866971, 778776, 843725, 1000699, 964279, 793638, 802567, 740667, 833114, 801360, 955770, 885813, 852931, 792836, 860573, 797781, 765477, 963034, 863867, 884583, 754745, 753304, 725621, 832919, 1020762, 837591, 882986, 748276, 793168, 802286, 742096, 879110, 985462, 806629, 829505, 804067, 819127, 763907, 972766, 1036064, 803752, 747349, 760162, 847762, 784457, 904192, 935380, 994429, 792568, 740374, 874412, 692820, 853583, 844042, 750699, 749557, 787650, 818409, 778084, 943069, 915901, 780896, 729782, 829880, 774443, 833277, 894201, 899629, 803959, 817555, 762508, 776142, 849929, 863358, 930290, 741385, 822030, 727689, 758124, 728912, 926304, 887696, 799160, 871454, 756956, 749750, 693395, 825770, 851619, 787759, 731474, 848814, 819793, 779039, 877443, 865166, 789660, 726615, 872934, 810374, 829429, 866375, 793252, 757306, 774172, 826303, 713453, 764618, 912709, 929544, 897712, 789701, 704464, 759028, 886061, 950002, 1039820, 788319, 825137, 678846, 796519, 724426, 830751, 849001, 706568, 749612, 694891, 800204, 740499, 875960, 827482, 779220, 816670, 924675, 709303, 811435, 886012, 770348, 805959], "baseline": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 832183.0, 831641.0, 826208.0, 831641.0, 832183.0, 832726.0, 832183.0, 832726.0, 832183.0, 831641.0, 832183.0, 832726.0, 832183.0, 832726.0, 834340.0, 832726.0, 834340.0, 836538.0, 839716.0, 836538.0, 836538.0, 836538.0, 836538.0, 834340.0, 836538.0, 839716.0, 839716.0, 836538.0, 839716.0, 839716.0, 843017.0, 843727.0, 845586.0, 843727.0, 843017.0, 840424.0, 840424.0, 840424.0, 843727.0, 845586.0, 845586.0, 843727.0, 845586.0, 843727.0, 843727.0, 846370.0, 848330.0, 848330.0, 843727.0, 843727.0, 838420.0, 838420.0, 838420.0, 840658.0, 840658.0, 835353.0, 833017.0, 833017.0, 817743.0, 833017.0, 833017.0, 819774.0, 818067.0, 818067.0, 824316.0, 824316.0, 824316.0, 831212.0, 824316.0, 812878.0, 805348.0, 812878.0, 805348.0, 812878.0, 824316.0, 824316.0, 812878.0, 805348.0, 812878.0, 812878.0, 824316.0, 824316.0, 812878.0, 805348.0, 803910.0, 805348.0, 805348.0, 812519.0, 818768.0, 812519.0, 805348.0, 811238.0, 803910.0, 811080.0, 811080.0, 824145.0, 811184.0, 810757.0, 810757.0, 810757.0, 817982.0, 817982.0, 824145.0, 817982.0, 817982.0, 810757.0, 810757.0, 810757.0, 810757.0, 817982.0, 810757.0, 810757.0, 810757.0, 810757.0, 810757.0, 810757.0, 819793.0, 810757.0, 801560.0, 810757.0, 818674.0, 810757.0, 818674.0, 818674.0, 810757.0, 801560.0, 808357.0, 804767.0, 815084.0, 820912.0, 815084.0, 804767.0, 796206.0, 804767.0, 796206.0, 796206.0, 804767.0, 815084.0, 815084.0, 804767.0, 801813.0, 791477.0, 801813.0, 815084.0, 822782.0, 815084.0, 815084.0, 815084.0, 815084.0, 803447.0, 803447.0, 817756.0, 803447.0, 794885.0, 794885.0, 798361.0, 794885.0, 794885.0, 794885.0, 791477.0, 793110.0, 798361.0, 798361.0, 798361.0, 805819.0, 805819.0], "upper": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 1075950.0, 1068118.0, 1058535.0, 1058843.0, 1063468.0, 1057894.0, 1052870.0, 1048299.0, 1043234.0, 1039313.0, 1043541.0, 1046108.0, 1043549.0, 1040138.0, 1038250.0, 1040365.0, 1038412.0, 1046181.0, 1048075.0, 1046622.0, 1048389.0, 1047131.0, 1047282.0, 1050836.0, 1055014.0, 1069632.0, 1060417.0, 1025821.0, 1026705.0, 1026255.0, 1029284.0, 1039714.0, 1043410.0, 1043855.0, 1038273.0, 1043239.0, 1042711.0, 1044171.0, 1051789.0, 1052551.0, 1046265.0, 1040254.0, 1040597.0, 1040552.0, 1044630.0, 1046624.0, 1048524.0, 1042447.0, 1042177.0, 1046168.0, 1045698.0, 1044623.0, 1059564.0, 1054136.0, 1050687.0, 1029637.0, 1028415.0, 1029176.0, 1018431.0, 1032779.0, 1043653.0, 1017507.0, 1006519.0, 1006110.0, 1011927.0, 1009727.0, 1020146.0, 1045664.0, 1033322.0, 1025163.0, 1020377.0, 1027083.0, 1020499.0, 1029684.0, 1042877.0, 1047028.0, 1036586.0, 1032724.0, 1037503.0, 1044171.0, 1049422.0, 1049373.0, 1025452.0, 1021398.0, 1019432.0, 1017619.0, 1018301.0, 1031140.0, 1035908.0, 1030522.0, 1017029.0, 1022662.0, 1016821.0, 1023712.0, 1025740.0, 1038584.0, 1015987.0, 990995.0, 992904.0, 990845.0, 996041.0, 996606.0, 1007818.0, 1002646.0, 995177.0, 973047.0, 974717.0, 975867.0, 981751.0, 982519.0, 974724.0, 976152.0, 975624.0, 975606.0, 984780.0, 984840.0, 993685.0, 974777.0, 962208.0, 972031.0, 975580.0, 968137.0, 977990.0, 979486.0, 967488.0, 957197.0, 966988.0, 963338.0, 972480.0, 979515.0, 972947.0, 962481.0, 943484.0, 949551.0, 946635.0, 943642.0, 958848.0, 974125.0, 970287.0, 956297.0, 960835.0, 948986.0, 962101.0, 985486.0, 1012414.0, 1005495.0, 1005074.0, 1015741.0, 1011694.0, 1004603.0, 1004683.0, 1018558.0, 1008983.0, 1001143.0, 1007729.0, 1007743.0, 1004511.0, 1006910.0, 1006870.0, 1002054.0, 1003665.0, 1014312.0, 1018738.0, 1018601.0, 1023961.0, 1023692.0], "lower": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 588417.0, 595164.0, 593881.0, 604438.0, 600899.0, 607558.0, 611497.0, 617153.0, 621132.0, 623968.0, 620826.0, 619344.0, 620818.0, 625314.0, 630429.0, 625087.0, 630268.0, 626895.0, 631357.0, 626453.0, 624687.0, 625944.0, 625794.0, 617843.0, 618061.0, 609799.0, 619014.0, 647255.0, 652726.0, 653176.0, 656751.0, 647740.0, 647763.0, 643599.0, 647761.0, 637608.0, 638136.0, 636676.0, 635665.0, 638622.0, 644908.0, 647200.0, 650576.0, 646901.0, 642824.0, 646116.0, 648136.0, 654213.0, 645276.0, 641285.0, 631142.0, 632217.0, 617276.0, 627181.0, 630629.0, 641068.0, 637619.0, 636858.0, 617056.0, 633255.0, 622381.0, 622041.0, 629615.0, 630024.0, 636705.0, 638906.0, 628486.0, 616761.0, 615310.0, 600593.0, 590319.0, 598673.0, 590197.0, 596072.0, 605756.0, 601604.0, 589169.0, 577972.0, 588253.0, 581584.0, 599210.0, 599259.0, 600304.0, 589298.0, 588387.0, 593077.0, 592395.0, 593898.0, 601628.0, 594516.0, 593667.0, 599814.0, 590998.0, 598449.0, 596420.0, 609706.0, 606382.0, 630520.0, 628610.0, 630669.0, 639923.0, 639358.0, 640471.0, 633318.0, 640787.0, 648467.0, 646797.0, 645647.0, 639763.0, 653445.0, 646790.0, 645362.0, 645890.0, 645908.0, 636734.0, 636674.0, 645900.0, 646737.0, 640912.0, 649483.0, 661768.0, 653377.0, 659358.0, 657862.0, 654026.0, 645923.0, 649727.0, 646197.0, 657688.0, 662309.0, 657220.0, 647053.0, 648928.0, 659983.0, 645777.0, 648770.0, 650686.0, 656042.0, 659881.0, 653237.0, 642791.0, 633967.0, 641525.0, 644682.0, 633149.0, 624672.0, 625094.0, 614427.0, 618474.0, 602290.0, 602210.0, 616953.0, 597910.0, 588628.0, 582042.0, 588980.0, 585259.0, 582861.0, 582901.0, 580899.0, 582555.0, 582410.0, 577985.0, 578122.0, 587677.0, 587947.0], "anomaly_flags": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "Bhopal": {"status": "issue", "severity": "Critical", "confidence": "High", "anomaly_days": 19, "date_start": "16 Jan", "date_end": "09 Jun", "revenue_impact": -286893, "orders_affected": 708, "primary_driver": "Stockout Rate", "primary_driver_pct": 69.0, "driver_bars": [{"driver": "Stockout Rate", "pct_deviation": 69.0, "strength_pct": 100.0}, {"driver": "Delivery Time", "pct_deviation": -3.5, "strength_pct": 5.0}, {"driver": "Customer Churn Rate", "pct_deviation": 1.5, "strength_pct": 2.0}, {"driver": "Rider Availability", "pct_deviation": 0.4, "strength_pct": 1.0}, {"driver": "Competitor Activity", "pct_deviation": 0.0, "strength_pct": 0.0}], "dates": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29"], "revenue": [172318, 179937, 224040, 227618, 181032, 175556, 189459, 187626, 197359, 225631, 200142, 173954, 182659, 182732, 206622, 181102, 208705, 187394, 185888, 174770, 194224, 180418, 190858, 219499, 207455, 193575, 174687, 195527, 170646, 194508, 215922, 202934, 204003, 188960, 170214, 182830, 190408, 201187, 195283, 184824, 183582, 202968, 196049, 161256, 202885, 115578, 115415, 114812, 109175, 115128, 114310, 147045, 131216, 125488, 128148, 121270, 115772, 117853, 145982, 132403, 107654, 124132, 128191, 113917, 210829, 217592, 207926, 173210, 190619, 190681, 188440, 174859, 195940, 219170, 186861, 165549, 181572, 180595, 169637, 224908, 223918, 169707, 201103, 174265, 212057, 196275, 222078, 197668, 189933, 177860, 178275, 182389, 181490, 212058, 192189, 206747, 170632, 189814, 171992, 200975, 223385, 197600, 198066, 179335, 174098, 186599, 172756, 225698, 186514, 158734, 198681, 190390, 193142, 173713, 196137, 228202, 188622, 173951, 180388, 176669, 166522, 197755, 202987, 193927, 182176, 168960, 186786, 184226, 211348, 224768, 178395, 181147, 179508, 200281, 176859, 208011, 206838, 196831, 163529, 179148, 175961, 178980, 234759, 235978, 209596, 168060, 202023, 177376, 169377, 236956, 177821, 171183, 170827, 184007, 182071, 181814, 217194, 199529, 190124, 192698, 191045, 191161, 214176, 201419, 204409, 200849, 174844, 163954, 180726, 170771, 222995, 204342, 209748, 187727, 202015, 174238, 176392, 196348, 200361, 154690], "baseline": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 185179.0, 187626.0, 185179.0, 187626.0, 187510.0, 187394.0, 186641.0, 187394.0, 186641.0, 187394.0, 187510.0, 187626.0, 188543.0, 187626.0, 188543.0, 187626.0, 188543.0, 190159.0, 192217.0, 192217.0, 190159.0, 190159.0, 190159.0, 190633.0, 192217.0, 192217.0, 190633.0, 189684.0, 190633.0, 192217.0, 192217.0, 192217.0, 192217.0, 190633.0, 190633.0, 190633.0, 190633.0, 189684.0, 189684.0, 186892.0, 184203.0, 183206.0, 178759.0, 176738.0, 170430.0, 165735.0, 154151.0, 146514.0, 139193.0, 131810.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 129704.0, 131810.0, 139193.0, 146514.0, 156297.0, 167593.0, 171424.0, 171459.0, 174035.0, 174562.0, 177727.0, 181083.0, 184216.0, 187650.0, 189187.0, 189187.0, 189187.0, 189187.0, 189187.0, 190276.0, 190276.0, 190276.0, 189187.0, 189874.0, 189127.0, 189127.0, 189874.0, 191061.0, 191061.0, 189874.0, 189874.0, 189874.0, 189874.0, 191061.0, 191061.0, 189874.0, 189874.0, 190162.0, 190162.0, 190162.0, 190162.0, 190162.0, 189874.0, 189218.0, 187611.0, 187611.0, 187611.0, 189218.0, 190102.0, 190102.0, 189218.0, 187611.0, 187704.0, 186692.0, 187704.0, 187704.0, 186692.0, 186557.0, 185370.0, 186557.0, 186557.0, 186650.0, 187704.0, 187704.0, 187704.0, 187704.0, 185506.0, 183201.0, 183201.0, 185506.0, 185506.0, 183201.0, 183201.0, 183201.0, 183201.0, 185506.0, 185506.0, 183201.0, 181661.0, 181661.0, 181609.0, 181942.0, 181942.0, 181942.0, 181942.0, 181942.0, 183039.0, 187065.0, 190584.0, 190584.0, 191103.0, 191103.0, 190584.0, 187065.0, 187065.0, 187065.0, 190584.0, 191103.0, 191103.0, 190584.0, 190584.0, 190584.0, 188925.0, 190584.0, 191103.0], "upper": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 234006.0, 235508.0, 232111.0, 234056.0, 232717.0, 231547.0, 230827.0, 230475.0, 229159.0, 228938.0, 230539.0, 230373.0, 230427.0, 229680.0, 229831.0, 229464.0, 229668.0, 231556.0, 233302.0, 231150.0, 225694.0, 226771.0, 226209.0, 226669.0, 228399.0, 228355.0, 223416.0, 222386.0, 222782.0, 224124.0, 226891.0, 226582.0, 240866.0, 248917.0, 257377.0, 265524.0, 271340.0, 275272.0, 276292.0, 275460.0, 272618.0, 271842.0, 268961.0, 269576.0, 264211.0, 259626.0, 247376.0, 238268.0, 228946.0, 218633.0, 215837.0, 220135.0, 224328.0, 226297.0, 223890.0, 223416.0, 223941.0, 224354.0, 221724.0, 221712.0, 227157.0, 225539.0, 226561.0, 233401.0, 239726.0, 247104.0, 261169.0, 266558.0, 266248.0, 268749.0, 267174.0, 270198.0, 270948.0, 272131.0, 271184.0, 271152.0, 267732.0, 259095.0, 252702.0, 246173.0, 235404.0, 234634.0, 233583.0, 232930.0, 232809.0, 232983.0, 233221.0, 236302.0, 236786.0, 236824.0, 234376.0, 235068.0, 233451.0, 234097.0, 237525.0, 236282.0, 235437.0, 232994.0, 232102.0, 231873.0, 231922.0, 230841.0, 234229.0, 231587.0, 231489.0, 230109.0, 230184.0, 231186.0, 232837.0, 233945.0, 232788.0, 232031.0, 230624.0, 229913.0, 228951.0, 230437.0, 233060.0, 229655.0, 229486.0, 228261.0, 229593.0, 229409.0, 230364.0, 231360.0, 228252.0, 229968.0, 227790.0, 225831.0, 223771.0, 228913.0, 235130.0, 235748.0, 231685.0, 231963.0, 231731.0, 232503.0, 238659.0, 237704.0, 236280.0, 235349.0, 235425.0, 235376.0, 234903.0, 236167.0, 236134.0, 235419.0, 233133.0, 233889.0, 237688.0, 241884.0, 241922.0, 242131.0, 241804.0, 241577.0, 239634.0, 238239.0, 238829.0, 243709.0, 244023.0, 241025.0, 236282.0, 235767.0, 235164.0, 233745.0, 235022.0, 234475.0], "lower": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 136352.0, 139744.0, 138247.0, 141196.0, 142302.0, 143241.0, 142455.0, 144313.0, 144122.0, 145850.0, 144481.0, 144879.0, 146659.0, 145572.0, 147254.0, 145788.0, 147418.0, 148761.0, 151132.0, 153284.0, 154623.0, 153547.0, 154109.0, 154596.0, 156034.0, 156078.0, 157850.0, 156982.0, 158484.0, 160309.0, 157542.0, 157851.0, 143567.0, 132349.0, 123888.0, 115741.0, 109925.0, 104096.0, 103076.0, 98325.0, 95787.0, 94571.0, 88556.0, 83900.0, 76648.0, 71844.0, 60926.0, 54759.0, 49439.0, 44986.0, 43570.0, 39272.0, 35080.0, 33111.0, 35517.0, 35992.0, 35466.0, 35053.0, 37683.0, 37696.0, 32251.0, 33869.0, 37059.0, 44984.0, 53301.0, 65491.0, 74018.0, 76289.0, 76669.0, 79321.0, 81951.0, 85256.0, 91219.0, 96302.0, 104117.0, 107222.0, 110642.0, 119278.0, 125671.0, 132200.0, 145148.0, 145918.0, 146970.0, 145443.0, 146939.0, 145270.0, 145033.0, 143445.0, 145336.0, 145299.0, 145371.0, 144680.0, 146296.0, 145650.0, 144598.0, 145840.0, 144311.0, 146753.0, 148222.0, 148451.0, 148402.0, 149483.0, 146095.0, 148161.0, 146947.0, 145112.0, 145038.0, 144035.0, 145599.0, 146259.0, 147417.0, 146405.0, 144597.0, 145494.0, 144434.0, 144970.0, 142347.0, 143730.0, 143628.0, 142479.0, 143520.0, 143705.0, 142936.0, 144048.0, 147156.0, 145440.0, 147618.0, 145181.0, 142631.0, 137489.0, 135882.0, 135263.0, 134717.0, 134440.0, 134671.0, 133899.0, 132353.0, 133308.0, 130122.0, 127974.0, 127897.0, 127841.0, 128982.0, 127718.0, 127751.0, 128466.0, 130751.0, 132189.0, 136442.0, 139285.0, 139247.0, 140075.0, 140403.0, 139592.0, 134497.0, 135892.0, 135302.0, 137460.0, 138184.0, 141182.0, 144887.0, 145402.0, 146005.0, 144105.0, 146147.0, 147732.0], "anomaly_flags": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, true, false, false, true, false, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "Delhi": {"status": "stable", "dates": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29"], "revenue": [657397, 696396, 838672, 900784, 710035, 749935, 750533, 750018, 791551, 848440, 912677, 766645, 761886, 808649, 809647, 719026, 823692, 797918, 744900, 795454, 770278, 734133, 728163, 894625, 917810, 690296, 726587, 767755, 700397, 808363, 902827, 791541, 686575, 712446, 704137, 772032, 855067, 763761, 781899, 732655, 798094, 667445, 700254, 733417, 818433, 856936, 749000, 724701, 735884, 745097, 747594, 819967, 835240, 757193, 749333, 755476, 667364, 730683, 780755, 873202, 712135, 821378, 796667, 667936, 843222, 730577, 771622, 759710, 725612, 784838, 763016, 674557, 828946, 857574, 726516, 718428, 817456, 743484, 720379, 863784, 814395, 791020, 706617, 729518, 693804, 767713, 775891, 901357, 742147, 657883, 718339, 703813, 711812, 742625, 785331, 699904, 721421, 753977, 717085, 635305, 894531, 855798, 732114, 781861, 756170, 706491, 768467, 885780, 860046, 728914, 697130, 726750, 770070, 647411, 851891, 853238, 721287, 782175, 748365, 835352, 768116, 804898, 786756, 764360, 771361, 728914, 700850, 659206, 842590, 937399, 712207, 716959, 838910, 714782, 676803, 898217, 812615, 608384, 718227, 752088, 708007, 778717, 779081, 926206, 722742, 825811, 742842, 776094, 843133, 817611, 860060, 771584, 671338, 747296, 767204, 655700, 817870, 794302, 753306, 675986, 763473, 761339, 696481, 809384, 720195, 712497, 830917, 783930, 714763, 736532, 862034, 743632, 809382, 728946, 690101, 733476, 697147, 875676, 839686, 775585], "baseline": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 764265.0, 766645.0, 764265.0, 766645.0, 779098.0, 766645.0, 779098.0, 770278.0, 768462.0, 766645.0, 768462.0, 770278.0, 768462.0, 766645.0, 767200.0, 766645.0, 767200.0, 769017.0, 780910.0, 769017.0, 767200.0, 767200.0, 769017.0, 771155.0, 771155.0, 771155.0, 769017.0, 769017.0, 769017.0, 769017.0, 765758.0, 765758.0, 769017.0, 765758.0, 756380.0, 756380.0, 747048.0, 746345.0, 748297.0, 756380.0, 753096.0, 749166.0, 752405.0, 752405.0, 749166.0, 752405.0, 752405.0, 749166.0, 749166.0, 752405.0, 752405.0, 756335.0, 752405.0, 752405.0, 752405.0, 749166.0, 752405.0, 752405.0, 752405.0, 756335.0, 758452.0, 756335.0, 752405.0, 756335.0, 756335.0, 756335.0, 758452.0, 761363.0, 761363.0, 758452.0, 757593.0, 757593.0, 761363.0, 765365.0, 769668.0, 765365.0, 761363.0, 761363.0, 751597.0, 742815.0, 743055.0, 743055.0, 743055.0, 742386.0, 742386.0, 742386.0, 735832.0, 735832.0, 742386.0, 737130.0, 737130.0, 742386.0, 742386.0, 742386.0, 742386.0, 748301.0, 742386.0, 737130.0, 730816.0, 737130.0, 737130.0, 742386.0, 742386.0, 737130.0, 737130.0, 737370.0, 745495.0, 751171.0, 755073.0, 762143.0, 766238.0, 766238.0, 766238.0, 766238.0, 766238.0, 768292.0, 769268.0, 768292.0, 766238.0, 768292.0, 766238.0, 766238.0, 768292.0, 769093.0, 766238.0, 756363.0, 758224.0, 758224.0, 766238.0, 766238.0, 769739.0, 766238.0, 766238.0, 766238.0, 766238.0, 769739.0, 769739.0, 773728.0, 771473.0, 767861.0, 761725.0, 759646.0, 759646.0, 769394.0, 773839.0, 769394.0, 760255.0, 765338.0, 765338.0, 762406.0, 765338.0, 765338.0, 762406.0, 762406.0, 765338.0, 765338.0, 765338.0, 769394.0, 765338.0, 765338.0, 762406.0, 762406.0, 757322.0, 757322.0, 757322.0, 757322.0], "upper": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 949446.0, 945999.0, 942169.0, 940969.0, 948474.0, 932692.0, 940919.0, 928125.0, 924531.0, 921414.0, 931331.0, 943630.0, 944826.0, 941735.0, 939137.0, 939565.0, 937675.0, 938537.0, 944910.0, 937995.0, 930216.0, 930776.0, 932060.0, 937132.0, 936660.0, 936618.0, 933083.0, 920905.0, 928711.0, 932018.0, 928553.0, 929089.0, 935535.0, 930820.0, 922165.0, 922482.0, 912905.0, 912390.0, 915528.0, 925276.0, 911712.0, 890957.0, 890241.0, 896167.0, 893568.0, 894278.0, 901660.0, 885260.0, 887479.0, 887275.0, 892326.0, 898291.0, 895267.0, 888868.0, 888871.0, 886292.0, 889336.0, 888274.0, 887256.0, 891473.0, 899039.0, 896284.0, 887234.0, 893365.0, 892467.0, 893355.0, 902438.0, 906517.0, 904979.0, 901361.0, 901389.0, 904820.0, 908572.0, 905585.0, 921668.0, 917910.0, 914410.0, 913986.0, 904097.0, 895823.0, 890378.0, 885584.0, 887513.0, 887535.0, 887518.0, 887939.0, 890382.0, 903930.0, 912402.0, 904393.0, 897997.0, 902723.0, 903403.0, 900823.0, 911887.0, 923055.0, 911030.0, 905817.0, 899021.0, 904138.0, 910811.0, 919732.0, 925102.0, 920486.0, 907996.0, 908169.0, 913994.0, 918559.0, 921316.0, 926748.0, 930439.0, 930245.0, 928188.0, 929742.0, 937034.0, 941143.0, 946745.0, 939579.0, 934739.0, 938895.0, 938726.0, 943784.0, 953189.0, 954837.0, 959266.0, 945234.0, 946548.0, 945810.0, 953221.0, 953333.0, 962586.0, 956733.0, 954516.0, 953618.0, 953544.0, 959816.0, 958706.0, 966990.0, 964192.0, 965941.0, 960048.0, 957967.0, 963847.0, 972520.0, 970337.0, 963434.0, 942456.0, 945967.0, 944579.0, 940946.0, 943795.0, 940269.0, 927299.0, 928771.0, 915689.0, 915935.0, 916412.0, 924152.0, 920528.0, 921547.0, 901203.0, 904058.0, 896367.0, 899100.0, 908766.0, 908374.0], "lower": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 579085.0, 587290.0, 586361.0, 592320.0, 609722.0, 600597.0, 617277.0, 612432.0, 612392.0, 611875.0, 605592.0, 596927.0, 592097.0, 591555.0, 595263.0, 593724.0, 596725.0, 599497.0, 616909.0, 600038.0, 604184.0, 603624.0, 605974.0, 605178.0, 605651.0, 605693.0, 604951.0, 617128.0, 609323.0, 606016.0, 602963.0, 602427.0, 602499.0, 600696.0, 590596.0, 590278.0, 581191.0, 580301.0, 581065.0, 587484.0, 594481.0, 607375.0, 614569.0, 608643.0, 604765.0, 610531.0, 603149.0, 613072.0, 610853.0, 617534.0, 612484.0, 614378.0, 609543.0, 615941.0, 615938.0, 612040.0, 615474.0, 616535.0, 617553.0, 621197.0, 617864.0, 616385.0, 617576.0, 619305.0, 620203.0, 619314.0, 614465.0, 616208.0, 617746.0, 615542.0, 613797.0, 610367.0, 614154.0, 625145.0, 617667.0, 612819.0, 608316.0, 608740.0, 599097.0, 589808.0, 595731.0, 600525.0, 598596.0, 597237.0, 597254.0, 596834.0, 581283.0, 567735.0, 572370.0, 569868.0, 576264.0, 582049.0, 581369.0, 583950.0, 572885.0, 573547.0, 573743.0, 568444.0, 562611.0, 570122.0, 563450.0, 565040.0, 559670.0, 553775.0, 566264.0, 566570.0, 576997.0, 583783.0, 588831.0, 597539.0, 602038.0, 602231.0, 604289.0, 602735.0, 595442.0, 595440.0, 591792.0, 597004.0, 597738.0, 597688.0, 593751.0, 588693.0, 583394.0, 583349.0, 573211.0, 567492.0, 569901.0, 570639.0, 579256.0, 579144.0, 576891.0, 575744.0, 577960.0, 578859.0, 578932.0, 579661.0, 580772.0, 580465.0, 578754.0, 569781.0, 563401.0, 561326.0, 555446.0, 566268.0, 577341.0, 575354.0, 578055.0, 584710.0, 586098.0, 583865.0, 586882.0, 590408.0, 597512.0, 596040.0, 614988.0, 614742.0, 614265.0, 614637.0, 610149.0, 609130.0, 623608.0, 620753.0, 618277.0, 615545.0, 605879.0, 606271.0], "anomaly_flags": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "Hyderabad": {"status": "stable", "dates": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29"], "revenue": [475491, 536029, 628488, 562221, 476995, 495940, 512026, 515523, 504881, 536876, 532198, 525153, 470414, 470881, 513191, 498020, 578801, 553157, 531926, 523981, 553528, 492648, 491814, 535741, 504078, 551353, 548270, 431162, 498019, 481543, 492522, 643993, 432160, 497857, 522530, 533754, 530431, 542765, 650777, 461703, 473504, 440591, 505241, 487764, 549728, 554924, 500288, 470480, 496931, 480541, 528500, 596740, 584794, 471703, 534766, 483070, 454024, 489458, 616313, 687094, 564881, 517054, 507130, 434013, 529625, 551559, 637652, 507748, 473427, 556231, 467244, 501527, 548521, 569070, 489368, 482990, 486757, 532797, 505236, 560602, 591237, 489821, 493537, 572753, 475370, 466192, 624378, 526046, 448698, 526581, 480602, 441091, 457139, 562310, 626174, 516429, 496521, 481561, 483810, 453366, 606134, 523671, 494620, 472893, 444059, 564349, 464272, 594537, 621570, 532083, 478756, 513386, 488434, 468442, 593005, 631648, 539449, 475216, 532187, 519911, 438117, 592150, 628308, 493011, 492514, 484686, 443604, 517369, 597410, 563883, 513914, 504281, 487377, 525620, 494851, 596466, 511933, 528067, 545981, 433631, 456995, 468814, 563939, 596013, 487367, 483101, 488512, 502242, 517110, 569102, 622710, 444426, 492836, 502721, 434780, 514791, 606489, 581526, 465319, 503632, 495869, 435182, 530192, 525101, 529098, 487648, 482821, 483005, 445336, 514250, 575678, 594176, 516655, 496505, 502703, 491403, 513970, 546692, 589704, 512916], "baseline": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 513775.0, 513191.0, 512609.0, 513191.0, 514357.0, 515523.0, 519752.0, 523981.0, 519752.0, 515523.0, 519752.0, 515523.0, 519752.0, 523981.0, 519752.0, 515523.0, 514357.0, 514357.0, 514357.0, 512609.0, 508454.0, 512609.0, 514357.0, 519026.0, 523255.0, 524567.0, 523255.0, 517860.0, 508634.0, 509216.0, 509216.0, 513886.0, 523255.0, 513886.0, 504660.0, 502183.0, 499154.0, 499154.0, 502183.0, 504660.0, 502183.0, 502765.0, 499154.0, 497938.0, 497938.0, 499073.0, 502765.0, 513886.0, 511148.0, 512092.0, 512092.0, 512092.0, 512092.0, 512092.0, 507439.0, 506186.0, 507439.0, 507439.0, 507439.0, 512401.0, 522777.0, 512401.0, 507439.0, 507439.0, 512401.0, 512401.0, 522777.0, 523340.0, 512401.0, 507439.0, 512401.0, 507439.0, 507439.0, 512401.0, 521550.0, 512401.0, 512401.0, 507439.0, 506183.0, 503382.0, 506492.0, 506492.0, 506492.0, 503382.0, 499024.0, 499024.0, 495029.0, 499024.0, 500878.0, 495571.0, 494079.0, 494079.0, 495571.0, 495571.0, 495571.0, 495571.0, 495571.0, 494079.0, 495571.0, 495571.0, 491527.0, 495571.0, 504954.0, 504954.0, 495571.0, 504954.0, 504954.0, 504954.0, 514907.0, 518170.0, 514907.0, 504954.0, 495571.0, 493815.0, 504003.0, 515377.0, 518640.0, 515641.0, 513650.0, 513650.0, 515641.0, 515641.0, 515641.0, 515641.0, 515641.0, 515641.0, 513650.0, 513650.0, 512923.0, 515641.0, 518640.0, 515641.0, 512923.0, 508107.0, 508107.0, 508107.0, 508107.0, 512923.0, 508107.0, 503261.0, 503501.0, 503501.0, 508107.0, 512923.0, 512923.0, 508107.0, 503956.0, 503177.0, 502481.0, 503177.0, 503177.0, 507783.0, 503177.0, 502481.0, 499056.0, 494353.0, 499056.0, 502481.0, 503177.0, 503177.0, 502481.0, 502712.0, 502712.0, 503177.0, 508801.0, 508801.0], "upper": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 620665.0, 616229.0, 612863.0, 617487.0, 617453.0, 615894.0, 617452.0, 620737.0, 615607.0, 610505.0, 612955.0, 607178.0, 610796.0, 614149.0, 618290.0, 612806.0, 611459.0, 610167.0, 625871.0, 619571.0, 613346.0, 616168.0, 617881.0, 622741.0, 627655.0, 645161.0, 646741.0, 642972.0, 638545.0, 637511.0, 636453.0, 641992.0, 652081.0, 639926.0, 631273.0, 628766.0, 626500.0, 625243.0, 633826.0, 639644.0, 638474.0, 639222.0, 635412.0, 635902.0, 631106.0, 640081.0, 662596.0, 674074.0, 661396.0, 656459.0, 661841.0, 661877.0, 662382.0, 671201.0, 666593.0, 655568.0, 655133.0, 655610.0, 650872.0, 655930.0, 666420.0, 656792.0, 652544.0, 653160.0, 655951.0, 655638.0, 665157.0, 668524.0, 655351.0, 648566.0, 652919.0, 649928.0, 651223.0, 658981.0, 666841.0, 656921.0, 635490.0, 630103.0, 633833.0, 633784.0, 632968.0, 642137.0, 641420.0, 626806.0, 623395.0, 622735.0, 620315.0, 629563.0, 631259.0, 625489.0, 622862.0, 626216.0, 629230.0, 630586.0, 635417.0, 643547.0, 642374.0, 637686.0, 638726.0, 638907.0, 633644.0, 641405.0, 658210.0, 650520.0, 642354.0, 648392.0, 648346.0, 652036.0, 661309.0, 668956.0, 665604.0, 648611.0, 640180.0, 642250.0, 651423.0, 665951.0, 666577.0, 658858.0, 657148.0, 657497.0, 657527.0, 653125.0, 655787.0, 652806.0, 649286.0, 642004.0, 646545.0, 648398.0, 649691.0, 653123.0, 657846.0, 652161.0, 640298.0, 635686.0, 634437.0, 634218.0, 636532.0, 644347.0, 640243.0, 625275.0, 625230.0, 630236.0, 634152.0, 641361.0, 644476.0, 636962.0, 630992.0, 630506.0, 634782.0, 635209.0, 635199.0, 639697.0, 629756.0, 629702.0, 626549.0, 623709.0, 623982.0, 628765.0, 633202.0, 631208.0, 624745.0, 624538.0, 624180.0, 624150.0, 630655.0, 635457.0], "lower": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 406884.0, 410153.0, 412354.0, 408895.0, 411261.0, 415152.0, 422051.0, 427224.0, 423896.0, 420541.0, 426548.0, 423867.0, 428707.0, 433812.0, 421214.0, 418240.0, 417255.0, 418547.0, 402843.0, 405646.0, 403562.0, 409049.0, 410833.0, 415312.0, 418855.0, 403972.0, 399770.0, 392748.0, 378724.0, 380921.0, 381979.0, 385780.0, 394429.0, 387845.0, 378046.0, 375600.0, 371807.0, 373065.0, 370540.0, 369675.0, 365892.0, 366308.0, 362896.0, 359973.0, 364770.0, 358065.0, 342934.0, 353698.0, 360900.0, 367725.0, 362344.0, 362307.0, 361802.0, 352983.0, 348285.0, 356803.0, 359746.0, 359268.0, 364006.0, 368872.0, 379134.0, 368010.0, 362334.0, 361719.0, 368851.0, 369165.0, 380397.0, 378155.0, 369452.0, 366312.0, 371883.0, 364950.0, 363655.0, 365822.0, 376259.0, 367881.0, 389312.0, 384776.0, 378533.0, 372979.0, 380016.0, 370847.0, 371565.0, 379957.0, 374653.0, 375312.0, 369743.0, 368485.0, 370497.0, 365652.0, 365296.0, 361941.0, 361911.0, 360555.0, 355724.0, 347594.0, 348767.0, 350471.0, 352416.0, 352234.0, 349410.0, 349736.0, 351697.0, 359388.0, 348787.0, 361515.0, 361561.0, 357872.0, 368506.0, 367383.0, 364211.0, 361297.0, 350961.0, 345381.0, 356584.0, 364804.0, 370703.0, 372424.0, 370153.0, 369803.0, 373755.0, 378157.0, 375495.0, 378476.0, 381996.0, 389278.0, 380756.0, 378902.0, 376155.0, 378159.0, 379433.0, 379121.0, 385549.0, 380528.0, 381777.0, 381996.0, 379682.0, 381500.0, 375971.0, 381248.0, 381772.0, 376766.0, 382061.0, 384486.0, 381371.0, 379251.0, 376921.0, 375847.0, 370181.0, 371144.0, 371155.0, 375868.0, 376598.0, 375261.0, 371562.0, 364997.0, 374129.0, 376198.0, 373151.0, 375145.0, 380218.0, 380887.0, 381245.0, 382203.0, 386948.0, 382146.0], "anomaly_flags": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "Mumbai": {"status": "stable", "dates": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29"], "revenue": [953664, 864554, 1096841, 1061365, 975219, 906960, 936204, 936979, 895086, 1099319, 1160458, 899050, 924725, 960708, 902285, 890958, 1177883, 931275, 974327, 929719, 1024100, 1020309, 964725, 1022692, 1058727, 1012430, 990228, 994379, 828358, 931554, 997514, 1100845, 870113, 928619, 939782, 921709, 1072725, 935707, 1013433, 948888, 956127, 1012891, 990041, 967467, 1098251, 1188521, 952176, 849588, 769095, 820078, 953181, 981014, 1190447, 930403, 909238, 886855, 915798, 923627, 1091117, 1105278, 1043734, 926435, 875642, 958333, 1046388, 1162886, 1140759, 973645, 983707, 875093, 901165, 931398, 1085372, 1078169, 925178, 820173, 1009963, 975732, 905865, 996915, 1127029, 971920, 859053, 938934, 874587, 1040557, 1090891, 1000151, 831189, 936776, 935227, 1008825, 833394, 1152142, 1180524, 1012762, 912971, 975025, 825510, 887449, 1009196, 991250, 938326, 978307, 929363, 907333, 917281, 1244163, 1081345, 985223, 916063, 983427, 969306, 971684, 1055179, 1048442, 851860, 964989, 1003603, 962560, 904757, 1211134, 1011481, 953655, 999422, 915599, 918075, 885798, 1010775, 1186557, 902914, 948346, 882470, 810994, 985419, 1108249, 1023815, 1028485, 853895, 879735, 911897, 910325, 1142466, 1117398, 846293, 915684, 927901, 975827, 979918, 1178570, 1139453, 968706, 965388, 846968, 988678, 898060, 1077823, 1046166, 847991, 992352, 960778, 947325, 955635, 1050685, 1299246, 982559, 877186, 892357, 842131, 972714, 1057610, 1001536, 1009474, 886166, 855288, 990156, 893069, 1100086, 963595, 916444], "baseline": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 945321.0, 936979.0, 936591.0, 936979.0, 936591.0, 936979.0, 936591.0, 936979.0, 945321.0, 953664.0, 957186.0, 960708.0, 962716.0, 964725.0, 969526.0, 964725.0, 962716.0, 969526.0, 974773.0, 969526.0, 962716.0, 950245.0, 950245.0, 962716.0, 962716.0, 969526.0, 962716.0, 958417.0, 962716.0, 969526.0, 970897.0, 982184.0, 990135.0, 982184.0, 982184.0, 978754.0, 978754.0, 966096.0, 966096.0, 974241.0, 961797.0, 954654.0, 952678.0, 950532.0, 944335.0, 950532.0, 952678.0, 952678.0, 950532.0, 950532.0, 952678.0, 954654.0, 957230.0, 957230.0, 962900.0, 962900.0, 962900.0, 962900.0, 955757.0, 955757.0, 955757.0, 952678.0, 941787.0, 942289.0, 955757.0, 955757.0, 965989.0, 974689.0, 972783.0, 965127.0, 965127.0, 965127.0, 972783.0, 974689.0, 979719.0, 974689.0, 972783.0, 965127.0, 972783.0, 972783.0, 974689.0, 974689.0, 974689.0, 972783.0, 973473.0, 955427.0, 955427.0, 973473.0, 975378.0, 973473.0, 973473.0, 973473.0, 973473.0, 955427.0, 955427.0, 973473.0, 973473.0, 955427.0, 956979.0, 972165.0, 973354.0, 976666.0, 976666.0, 973354.0, 970495.0, 973354.0, 973354.0, 973354.0, 973354.0, 976666.0, 973354.0, 973354.0, 970495.0, 970495.0, 967148.0, 970495.0, 974996.0, 970495.0, 967148.0, 967148.0, 963774.0, 967148.0, 970495.0, 977555.0, 977555.0, 970495.0, 967148.0, 967148.0, 963774.0, 963774.0, 963774.0, 958108.0, 951001.0, 951001.0, 951001.0, 951001.0, 951001.0, 964741.0, 961181.0, 959522.0, 956867.0, 956867.0, 956867.0, 967047.0, 972267.0, 967047.0, 967047.0, 967047.0, 967047.0, 967047.0, 972267.0, 972267.0, 972267.0, 967047.0, 963083.0, 963083.0, 967047.0, 970710.0, 974271.0, 974271.0, 970710.0, 970710.0, 974271.0, 974271.0, 976316.0, 970710.0], "upper": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 1172387.0, 1160969.0, 1158773.0, 1187385.0, 1181140.0, 1174640.0, 1169369.0, 1165510.0, 1169578.0, 1172878.0, 1172808.0, 1175469.0, 1173643.0, 1171578.0, 1172570.0, 1176873.0, 1172301.0, 1178991.0, 1184188.0, 1178845.0, 1169571.0, 1157718.0, 1156803.0, 1173228.0, 1173283.0, 1176871.0, 1163066.0, 1139342.0, 1141359.0, 1146721.0, 1147987.0, 1163982.0, 1189194.0, 1161890.0, 1170886.0, 1191283.0, 1202085.0, 1188253.0, 1187069.0, 1217191.0, 1204622.0, 1195748.0, 1195646.0, 1194162.0, 1188069.0, 1193309.0, 1202642.0, 1204462.0, 1196120.0, 1195650.0, 1197091.0, 1200976.0, 1216667.0, 1223533.0, 1228258.0, 1227943.0, 1232219.0, 1234541.0, 1227867.0, 1232217.0, 1235626.0, 1228563.0, 1208500.0, 1209620.0, 1217099.0, 1201065.0, 1199843.0, 1217002.0, 1215199.0, 1195043.0, 1194696.0, 1197467.0, 1202848.0, 1207732.0, 1210818.0, 1211781.0, 1203359.0, 1194173.0, 1201334.0, 1206072.0, 1221553.0, 1236421.0, 1223048.0, 1210898.0, 1211590.0, 1202691.0, 1201763.0, 1218471.0, 1219809.0, 1212501.0, 1206878.0, 1206733.0, 1198310.0, 1180508.0, 1214147.0, 1234653.0, 1234541.0, 1208386.0, 1209990.0, 1219455.0, 1220030.0, 1220889.0, 1221313.0, 1219736.0, 1216646.0, 1210280.0, 1209552.0, 1211231.0, 1233391.0, 1226564.0, 1212144.0, 1193989.0, 1192483.0, 1192178.0, 1192712.0, 1185361.0, 1204873.0, 1203577.0, 1200869.0, 1204645.0, 1213978.0, 1216319.0, 1223937.0, 1229398.0, 1199995.0, 1195414.0, 1196163.0, 1196389.0, 1194617.0, 1207812.0, 1216323.0, 1215155.0, 1206758.0, 1201600.0, 1201595.0, 1201167.0, 1218535.0, 1239844.0, 1214833.0, 1212709.0, 1216663.0, 1216467.0, 1217408.0, 1230738.0, 1234206.0, 1235584.0, 1216826.0, 1214862.0, 1214883.0, 1211415.0, 1206364.0, 1247455.0, 1242023.0, 1240956.0, 1239242.0, 1240442.0, 1240464.0, 1244170.0, 1245392.0, 1235886.0, 1228445.0, 1227488.0, 1229397.0, 1231432.0, 1239301.0, 1233848.0], "lower": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 718256.0, 712988.0, 714410.0, 686572.0, 692043.0, 699317.0, 703814.0, 708447.0, 721065.0, 734450.0, 741564.0, 745946.0, 751790.0, 757873.0, 766482.0, 752577.0, 753132.0, 760061.0, 765357.0, 760207.0, 755862.0, 742772.0, 743687.0, 752205.0, 752150.0, 762180.0, 762367.0, 777493.0, 784074.0, 792331.0, 793807.0, 800385.0, 791075.0, 802477.0, 793481.0, 766226.0, 755423.0, 743940.0, 745124.0, 731291.0, 718973.0, 713560.0, 709710.0, 706901.0, 700602.0, 707755.0, 702714.0, 700894.0, 704943.0, 705414.0, 708265.0, 708332.0, 697793.0, 690927.0, 697543.0, 697857.0, 693581.0, 691259.0, 683646.0, 679296.0, 675887.0, 676793.0, 675073.0, 674958.0, 694415.0, 710448.0, 732135.0, 732375.0, 730367.0, 735210.0, 735557.0, 732786.0, 742718.0, 741645.0, 748621.0, 737596.0, 742207.0, 736081.0, 744232.0, 739494.0, 727824.0, 712956.0, 726329.0, 734668.0, 735355.0, 708163.0, 709091.0, 728474.0, 730947.0, 734444.0, 740067.0, 740212.0, 748635.0, 730346.0, 696707.0, 712292.0, 712404.0, 702468.0, 703968.0, 724876.0, 726679.0, 732443.0, 732019.0, 726973.0, 724345.0, 736429.0, 737157.0, 735478.0, 713318.0, 726768.0, 734565.0, 752720.0, 748508.0, 748812.0, 741583.0, 755629.0, 745118.0, 737414.0, 733427.0, 729651.0, 713570.0, 717976.0, 717054.0, 725712.0, 755116.0, 745577.0, 738132.0, 737907.0, 732932.0, 719737.0, 711225.0, 701060.0, 695244.0, 700401.0, 700407.0, 700834.0, 683466.0, 689638.0, 707528.0, 706334.0, 697072.0, 697268.0, 696327.0, 703356.0, 710327.0, 698511.0, 717268.0, 719233.0, 719211.0, 722680.0, 738169.0, 697078.0, 702510.0, 693138.0, 686925.0, 685724.0, 693630.0, 697250.0, 703149.0, 712655.0, 712975.0, 713933.0, 719144.0, 717110.0, 713331.0, 707572.0], "anomaly_flags": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, "Pune": {"status": "issue", "severity": "Watch", "confidence": "Medium", "anomaly_days": 21, "date_start": "16 Jan", "date_end": "10 Jun", "revenue_impact": 13490, "orders_affected": -185, "primary_driver": "Delivery Time", "primary_driver_pct": 22.0, "driver_bars": [{"driver": "Delivery Time", "pct_deviation": 22.0, "strength_pct": 100.0}, {"driver": "Rider Availability", "pct_deviation": -13.1, "strength_pct": 60.0}, {"driver": "Stockout Rate", "pct_deviation": 1.2, "strength_pct": 6.0}, {"driver": "Customer Churn Rate", "pct_deviation": 0.5, "strength_pct": 2.0}, {"driver": "Competitor Activity", "pct_deviation": 0.0, "strength_pct": 0.0}], "dates": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29"], "revenue": [416380, 407714, 529935, 460529, 381255, 425320, 403717, 431910, 419282, 480182, 442333, 411437, 357222, 368985, 463233, 438886, 509686, 499477, 413567, 433222, 412197, 450263, 373271, 499732, 453581, 431339, 432999, 429062, 435468, 447308, 492894, 496025, 416216, 445700, 425641, 463030, 409129, 450991, 456917, 467326, 441197, 427915, 384575, 447856, 452155, 550588, 396591, 442004, 408893, 410555, 436140, 542811, 523759, 389098, 481161, 393087, 449781, 435092, 498551, 502424, 390155, 465243, 424479, 402824, 438007, 511281, 460041, 445213, 377864, 383613, 383893, 371294, 445120, 449684, 409992, 413601, 423020, 430258, 421100, 426918, 477607, 377192, 408190, 391708, 390948, 354342, 464721, 457894, 377639, 378484, 412472, 409875, 399608, 461430, 434352, 348712, 416241, 373391, 421984, 381451, 500377, 478977, 468747, 395093, 400990, 447840, 440564, 471510, 507299, 440057, 421887, 440783, 383397, 412000, 465034, 476740, 442481, 441350, 395373, 381842, 412752, 461383, 464673, 423115, 401060, 421919, 401147, 381838, 455141, 520688, 383414, 416250, 379676, 415035, 410171, 500388, 468275, 423038, 413425, 461322, 392161, 437033, 464987, 487667, 419218, 407231, 411867, 390676, 436443, 465390, 479622, 446191, 475950, 406678, 425169, 399767, 504685, 444142, 403304, 448719, 416355, 402146, 473516, 500098, 508589, 468431, 427900, 452192, 387015, 428895, 461309, 454887, 424734, 392385, 414154, 413480, 413003, 525149, 518857, 411715], "baseline": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 417831.0, 419282.0, 422301.0, 425320.0, 428615.0, 425320.0, 428615.0, 425320.0, 428615.0, 425320.0, 428615.0, 431910.0, 431625.0, 431910.0, 431625.0, 431910.0, 432454.0, 433110.0, 434345.0, 433110.0, 433110.0, 433110.0, 434345.0, 434345.0, 437177.0, 440609.0, 440609.0, 440042.0, 440042.0, 440042.0, 443449.0, 443449.0, 446504.0, 443449.0, 441600.0, 441600.0, 441600.0, 441600.0, 441600.0, 443852.0, 441600.0, 441600.0, 441600.0, 443852.0, 443852.0, 446504.0, 446778.0, 443852.0, 443852.0, 443852.0, 441600.0, 441600.0, 441600.0, 444930.0, 443609.0, 441600.0, 439602.0, 437074.0, 437074.0, 440006.0, 440006.0, 437074.0, 435616.0, 435616.0, 432675.0, 432675.0, 432675.0, 432675.0, 428588.0, 425698.0, 425698.0, 423749.0, 423749.0, 423749.0, 423749.0, 422060.0, 417351.0, 417351.0, 413037.0, 411232.0, 413037.0, 413037.0, 411232.0, 411232.0, 409933.0, 411232.0, 411232.0, 413037.0, 414921.0, 414921.0, 413037.0, 413037.0, 414356.0, 414356.0, 414356.0, 414356.0, 414356.0, 414356.0, 419064.0, 419064.0, 419064.0, 421936.0, 428168.0, 428168.0, 428168.0, 428168.0, 428168.0, 428168.0, 437204.0, 440310.0, 437204.0, 431586.0, 431586.0, 431586.0, 431586.0, 440310.0, 440673.0, 440310.0, 431586.0, 422517.0, 422517.0, 422517.0, 422517.0, 422517.0, 422479.0, 421903.0, 421903.0, 419085.0, 419085.0, 422479.0, 423076.0, 422479.0, 420569.0, 417734.0, 415642.0, 417734.0, 420569.0, 422479.0, 422479.0, 422479.0, 420569.0, 422479.0, 421128.0, 424103.0, 430806.0, 424103.0, 424103.0, 424103.0, 424103.0, 430806.0, 436738.0, 440588.0, 440588.0, 436738.0, 440588.0, 440588.0, 436738.0, 440588.0, 445167.0, 440293.0, 432669.0, 432669.0, 432669.0, 432669.0, 440293.0, 445167.0], "upper": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 530366.0, 530639.0, 530154.0, 541056.0, 547682.0, 541743.0, 541937.0, 536453.0, 537431.0, 536307.0, 542573.0, 543873.0, 541343.0, 539503.0, 537245.0, 535627.0, 534525.0, 538056.0, 541539.0, 532186.0, 531658.0, 528319.0, 530025.0, 529623.0, 532528.0, 535738.0, 534783.0, 534213.0, 533400.0, 528805.0, 525190.0, 524811.0, 541081.0, 536280.0, 530734.0, 531088.0, 532184.0, 531156.0, 542168.0, 544551.0, 543326.0, 544487.0, 547253.0, 549318.0, 549131.0, 554162.0, 557108.0, 555782.0, 553790.0, 553359.0, 552958.0, 552621.0, 556331.0, 558319.0, 557011.0, 559493.0, 560471.0, 560996.0, 564999.0, 565237.0, 565259.0, 563070.0, 550909.0, 549582.0, 546655.0, 546151.0, 545574.0, 547042.0, 535248.0, 523967.0, 523742.0, 520205.0, 524627.0, 525633.0, 526608.0, 521430.0, 511197.0, 510297.0, 503467.0, 501950.0, 505775.0, 505623.0, 498201.0, 495334.0, 494207.0, 494387.0, 494543.0, 504878.0, 509014.0, 511082.0, 508633.0, 508861.0, 511220.0, 511756.0, 514625.0, 522313.0, 522594.0, 519477.0, 522449.0, 523838.0, 522961.0, 526393.0, 529531.0, 528374.0, 527625.0, 525992.0, 525630.0, 525619.0, 535303.0, 538447.0, 534500.0, 529866.0, 522098.0, 522959.0, 521856.0, 530993.0, 536145.0, 534369.0, 523608.0, 515957.0, 514807.0, 514273.0, 519399.0, 520725.0, 519093.0, 511945.0, 513051.0, 511743.0, 511649.0, 514042.0, 517754.0, 516152.0, 512408.0, 509701.0, 508976.0, 509967.0, 511642.0, 515765.0, 515029.0, 516008.0, 514772.0, 515586.0, 515359.0, 522655.0, 526027.0, 520255.0, 511895.0, 509052.0, 509963.0, 514391.0, 524279.0, 532206.0, 529059.0, 524615.0, 528159.0, 530829.0, 526656.0, 528015.0, 532725.0, 527629.0, 520087.0, 520361.0, 519924.0, 519850.0, 532894.0, 543883.0], "lower": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 305296.0, 307925.0, 314447.0, 309583.0, 309548.0, 308896.0, 315293.0, 314186.0, 319798.0, 314332.0, 314657.0, 319947.0, 321906.0, 324317.0, 326005.0, 328193.0, 330384.0, 328165.0, 327151.0, 334034.0, 334563.0, 337902.0, 338665.0, 339067.0, 341826.0, 345481.0, 346436.0, 345870.0, 346683.0, 351278.0, 361708.0, 362086.0, 351927.0, 350618.0, 352467.0, 352113.0, 351017.0, 352045.0, 341033.0, 343153.0, 339875.0, 338714.0, 335947.0, 338386.0, 338573.0, 338846.0, 336449.0, 331922.0, 333913.0, 334345.0, 330243.0, 330580.0, 326869.0, 331541.0, 330207.0, 323708.0, 318734.0, 313151.0, 309149.0, 314774.0, 314752.0, 311078.0, 320323.0, 321650.0, 318695.0, 319199.0, 319775.0, 318307.0, 321928.0, 327430.0, 327654.0, 327294.0, 322872.0, 321866.0, 320891.0, 322691.0, 323505.0, 324405.0, 322606.0, 320514.0, 320299.0, 320450.0, 324263.0, 327130.0, 325659.0, 328077.0, 327920.0, 321195.0, 320828.0, 318760.0, 317440.0, 317213.0, 317493.0, 316956.0, 314088.0, 306400.0, 306119.0, 309236.0, 315679.0, 314291.0, 315167.0, 317479.0, 326805.0, 327962.0, 328711.0, 330344.0, 330706.0, 330717.0, 339106.0, 342174.0, 339909.0, 333306.0, 341074.0, 340213.0, 341316.0, 349628.0, 345202.0, 346251.0, 339564.0, 329078.0, 330228.0, 330761.0, 325635.0, 324309.0, 325864.0, 331861.0, 330756.0, 326427.0, 326521.0, 330915.0, 328399.0, 328805.0, 328730.0, 325767.0, 322309.0, 325501.0, 329496.0, 329192.0, 329928.0, 328949.0, 326366.0, 329371.0, 326896.0, 325552.0, 335585.0, 327951.0, 336312.0, 339155.0, 338244.0, 347221.0, 349197.0, 348969.0, 352116.0, 348861.0, 353016.0, 350346.0, 346820.0, 353160.0, 357609.0, 352956.0, 345251.0, 344977.0, 345414.0, 345488.0, 347692.0, 346451.0], "anomaly_flags": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, true, true, true, true, false, true, false, false, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, true, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}}}
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data-json').textContent);
+const CITIES = Object.keys(DATA.cities);
+const ISSUE_CITIES = CITIES.filter(c => DATA.cities[c].status === 'issue');
+
+const fmtCr = n => '₹' + n.toFixed(2) + ' Cr';
+const fmtK = n => n.toLocaleString('en-IN') + 'K';
+const fmtINR = n => {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 100000) return sign + '₹' + (abs/100000).toFixed(2) + 'L';
+  return sign + '₹' + abs.toLocaleString('en-IN');
+};
+
+// ---------- NAVIGATION ----------
+document.querySelectorAll('.navitem').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.navitem').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('view-' + item.dataset.view).classList.add('active');
+  });
+});
+
+// ---------- SCREEN 1: COMMAND CENTER ----------
+function renderKPIs() {
+  const k = DATA.kpis;
+  const revenueAtRisk = ISSUE_CITIES
+    .map(c => DATA.cities[c].revenue_impact)
+    .filter(v => v < 0)
+    .reduce((a, b) => a + b, 0);
+  const items = [
+    ['Revenue', fmtCr(k.total_revenue_cr)],
+    ['Revenue at Risk', fmtINR(Math.abs(revenueAtRisk))],
+    ['Avg Delivery Time', k.avg_delivery_time + ' min'],
+    ['Customer Churn', k.avg_churn + '%'],
+    ['Stockout Rate', k.avg_stockout + '%'],
+  ];
+  document.getElementById('kpi-row').innerHTML = items.map(([label, val]) => `
+    <div class="kpi-card">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value">${val}</div>
+    </div>`).join('');
+}
+
+const ISSUE_LABELS = {
+  'Bhopal': 'Stockout crisis',
+  'Bangalore': 'Churn increasing',
+  'Pune': 'Delivery deterioration',
+};
+
+function renderAlerts() {
+  document.getElementById('alert-count').textContent = ISSUE_CITIES.length + ' issues detected';
+  const rows = ISSUE_CITIES
+    .map(c => ({ city: c, ...DATA.cities[c] }))
+    .sort((a,b) => a.revenue_impact - b.revenue_impact)
+    .map(c => `
+      <tr class="clickable" onclick="goToRootCause('${c.city}')">
+        <td><span class="sev ${c.severity}">${c.severity}</span></td>
+        <td><b>${c.city}</b></td>
+        <td>${ISSUE_LABELS[c.city] || c.primary_driver}</td>
+        <td class="${c.revenue_impact < 0 ? 'impact-neg' : 'impact-pos'}">${c.revenue_impact < 0 ? fmtINR(c.revenue_impact) : 'Revenue at risk'}</td>
+        <td style="color:var(--accent2);font-size:12px;">Investigate →</td>
+      </tr>`).join('');
+  document.getElementById('alerts-body').innerHTML = rows;
+}
+
+function renderCityGrid(filterCity) {
+  const cities = (filterCity && filterCity !== 'all') ? [filterCity] : CITIES;
+  const html = cities.map(c => {
+    const d = DATA.cities[c];
+    let dot = 'green', status = 'Stable';
+    if (d.status === 'issue') {
+      dot = d.severity === 'Critical' ? 'red' : 'orange';
+      status = c === 'Bhopal' ? 'Inventory issue' : c === 'Pune' ? 'Delivery issue' : 'Competitive pressure';
+    }
+    return `
+      <div class="city-card" onclick="goToRootCause('${c}')">
+        <div class="cname">${c} <span class="status-dot ${dot}"></span></div>
+        <div class="cstatus">${status}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('city-grid').innerHTML = html;
+  document.getElementById('city-grid').style.gridTemplateColumns = cities.length < 6 ? `repeat(${cities.length}, 1fr)` : 'repeat(6, 1fr)';
+}
+
+document.getElementById('filter-city').addEventListener('change', e => renderCityGrid(e.target.value));
+
+// ---------- SCREEN 2: INVESTIGATE ----------
+function populateCitySelects() {
+  const opts = CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
+  document.getElementById('inv-city').innerHTML = opts;
+  document.getElementById('rc-city').innerHTML = ISSUE_CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
+  document.getElementById('filter-city').innerHTML = '<option value="all">All Cities</option>' + opts;
+}
+
+function renderInvestigate(city) {
+  const d = DATA.cities[city];
+  if (d.status !== 'issue') {
+    // still show the chart for a stable city, but with a stable message
+    drawChart(city);
+    document.getElementById('inv-what').textContent = 'No unusual pattern in this period.';
+    document.getElementById('inv-when').textContent = '—';
+    document.getElementById('inv-unusual').textContent = 'Stayed within the normal range';
+    return;
+  }
+  drawChart(city);
+  const revChangePct = d.primary_driver === 'Stockout Rate' || d.revenue_impact < 0
+    ? ((d.revenue_impact / (Math.abs(d.revenue_impact) + 1)) < 0 ? '' : '') : '';
+  document.getElementById('inv-what').textContent =
+    `Revenue/operations deviated meaningfully during the flagged period, primarily driven by ${d.primary_driver.toLowerCase()} (${d.primary_driver_pct > 0 ? '+' : ''}${d.primary_driver_pct}% vs baseline).`;
+  document.getElementById('inv-when').textContent = `${d.date_start} – ${d.date_end} (${d.anomaly_days} days)`;
+  document.getElementById('inv-unusual').textContent = `${d.anomaly_days} days outside the normal range`;
+}
+
+function drawChart(city) {
+  const d = DATA.cities[city];
+  const svg = document.getElementById('chart-svg');
+  svg.innerHTML = '';
+  if (!d.revenue) return;
+
+  const W = 1000, H = 280, PAD = 20;
+  const rev = d.revenue;
+  const baseline = d.baseline;
+  const upper = d.upper;
+  const lower = d.lower;
+  const anomFlags = d.anomaly_flags;
+  const n = rev.length;
+
+  const allVals = rev.concat(upper.filter(v => v!==null)).concat(lower.filter(v => v!==null));
+  const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+  const x = i => PAD + (i/(n-1)) * (W - 2*PAD);
+  const y = v => H - PAD - ((v - minV)/(maxV - minV)) * (H - 2*PAD);
+
+  const toPath = (arr) => {
+    let path = '';
+    let started = false;
+    arr.forEach((v, i) => {
+      if (v === null || v === undefined) { started = false; return; }
+      path += (started ? 'L' : 'M') + x(i) + ',' + y(v) + ' ';
+      started = true;
+    });
+    return path;
+  };
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const addPath = (d_, color, dash, width) => {
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', d_);
+    p.setAttribute('stroke', color);
+    p.setAttribute('stroke-width', width || 2);
+    p.setAttribute('fill', 'none');
+    if (dash) p.setAttribute('stroke-dasharray', dash);
+    svg.appendChild(p);
+  };
+
+  addPath(toPath(upper), '#c9d3ce', '4,3', 1.2);
+  addPath(toPath(lower), '#c9d3ce', '4,3', 1.2);
+  addPath(toPath(baseline), '#9aa89f', null, 1.5);
+  addPath(toPath(rev), '#0ea5b7', null, 2.2);
+
+  // anomaly markers
+  anomFlags.forEach((flag, i) => {
+    if (flag) {
+      const c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', x(i));
+      c.setAttribute('cy', y(rev[i]));
+      c.setAttribute('r', 2.6);
+      c.setAttribute('fill', '#e0483f');
+      svg.appendChild(c);
+    }
+  });
+}
+
+// ---------- SCREEN 3: ROOT CAUSE ----------
+const CITY_NARRATIVE = {
+  'Bhopal': {
+    headline: 'Bhopal Revenue Decline',
+    action: 'Audit replenishment frequency and identify repeatedly unavailable SKUs. Prioritize high-revenue products during inventory allocation, and review supplier lead times for the affected category.',
+  },
+  'Bangalore': {
+    headline: 'Bangalore Customer Churn',
+    action: 'Launch targeted retention interventions for high-value customer segments. Benchmark delivery speed and pricing against the competitor to identify the specific gap driving switching behavior.',
+  },
+  'Pune': {
+    headline: 'Pune Delivery Deterioration',
+    action: 'Investigate the root cause of rider attrition (pay competitiveness, shift load, alternative platforms). Deploy a short-term surge incentive to restore active rider count and delivery SLAs.',
+  },
+};
+
+const FLOW_STEPS = {
+  'Bhopal': ['Revenue ↓', 'Stockouts ↑ (~4.5× baseline)', 'High-revenue SKUs affected', 'Inventory replenishment issue', 'Next: compare affected SKUs by supplier & category'],
+  'Bangalore': ['Churn ↑', 'Competitor activity flagged', 'Customer retention weakening', 'Competitive positioning issue', 'Next: segment churned customers by tenure & order frequency'],
+  'Pune': ['Delivery time ↑', 'Active riders ↓ (~45%)', 'Order cancellations rising', 'Rider supply issue', 'Next: compare rider attrition against pay bands and shift patterns'],
+};
+
+function renderRootCause(city) {
+  const d = DATA.cities[city];
+  const narrative = CITY_NARRATIVE[city];
+
+  document.getElementById('rc-headline').textContent = narrative.headline;
+  document.getElementById('rc-impact').textContent = d.revenue_impact < 0 ? fmtINR(d.revenue_impact) : 'Revenue at risk';
+  document.getElementById('rc-orders').textContent = d.orders_affected.toLocaleString('en-IN');
+  document.getElementById('rc-duration').textContent = `${d.anomaly_days} days (${d.date_start} – ${d.date_end})`;
+
+  document.getElementById('rc-drivers').innerHTML = d.driver_bars.map((b, i) => `
+    <div class="driver-row">
+      <div>${b.driver}</div>
+      <div class="driver-track"><div class="driver-fill ${i===0?'primary':''}" style="width:${b.strength_pct}%"></div></div>
+      <div style="text-align:right;color:var(--sub);">${b.pct_deviation > 0 ? '+' : ''}${b.pct_deviation}%</div>
+    </div>`).join('');
+
+  document.getElementById('rc-caveat').innerHTML =
+    `${d.primary_driver} shows the biggest gap between anomalous and normal days, but that only means the two are ` +
+    `linked, not that one caused the other. Confirming that would mean comparing against a similar city that didn't see the same issue.`;
+
+  document.getElementById('rc-flow').innerHTML = FLOW_STEPS[city].map((step, i, arr) => `
+    <div class="flow-step">${step}</div>
+    ${i < arr.length-1 ? '<div class="flow-arrow">↓</div>' : ''}
+  `).join('');
+
+  document.getElementById('rc-action').textContent = narrative.action;
+}
+
+function goToCommandCenter() {  document.querySelectorAll('.navitem').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector('.navitem[data-view="command"]').classList.add('active');
+  document.getElementById('view-command').classList.add('active');
+}
+
+function goToTopIssue() {
+  const top = ISSUE_CITIES
+    .map(c => ({ city: c, ...DATA.cities[c] }))
+    .sort((a, b) => a.revenue_impact - b.revenue_impact)[0];
+  if (top) goToRootCause(top.city);
+}
+
+function goToRootCause(city) {
+  document.querySelectorAll('.navitem').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector('.navitem[data-view="rootcause"]').classList.add('active');
+  document.getElementById('view-rootcause').classList.add('active');
+  document.getElementById('rc-city').value = city;
+  renderRootCause(city);
+}
+
+// ---------- SCREEN 4: EXECUTIVE BRIEF ----------
+function generateBrief() {
+  const ranked = ISSUE_CITIES.map(c => ({ city: c, ...DATA.cities[c] })).sort((a,b) => a.revenue_impact - b.revenue_impact);
+  const html = ranked.map((c, i) => {
+    const narrative = CITY_NARRATIVE[c.city];
+    const priority = c.severity === 'Critical' ? 'Immediate' : 'Monitor';
+    return `
+      <div class="memo-card">
+        <div class="memo-head">
+          <div class="memo-title">${String(i+1).padStart(2,'0')} — ${c.city} <span class="sev ${c.severity}" style="margin-left:6px;">${c.severity}</span></div>
+          <span class="priority ${priority}">${priority}</span>
+        </div>
+        <div class="memo-sub">${narrative.headline.replace(c.city + ' ', '')}</div>
+        <div class="memo-line"><b>Finding:</b> ${c.primary_driver} deviated ${c.primary_driver_pct > 0 ? '+' : ''}${c.primary_driver_pct}% from baseline over ${c.anomaly_days} days (${c.date_start}–${c.date_end}).</div>
+        <div class="memo-line"><b>Estimated impact:</b> ${c.revenue_impact < 0 ? fmtINR(c.revenue_impact) + ' revenue impact' : 'Revenue at risk from sustained trend'} · ${c.orders_affected.toLocaleString('en-IN')} orders affected.</div>
+        <div class="memo-line"><b>Recommendation:</b> ${narrative.action}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('brief-output').innerHTML = `
+    <div class="card">
+      <div class="card-title">SwiftCart Weekly Intelligence Brief</div>
+      <div style="color:var(--sub);font-size:12.5px;margin-bottom:14px;">Period: ${ranked[0]?.date_start || ''} – ${ranked[0]?.date_end || ''} · ${ranked.length} findings</div>
+      ${html}
+    </div>`;
+}
+
+document.getElementById('gen-brief-btn').addEventListener('click', generateBrief);
+document.getElementById('inv-city').addEventListener('change', e => renderInvestigate(e.target.value));
+document.getElementById('rc-city').addEventListener('change', e => renderRootCause(e.target.value));
+
+// ---------- TOPBAR SEARCH ----------
+const METRIC_KEYWORDS = {
+  'delivery': 'Delivery Time', 'delivery time': 'Delivery Time',
+  'stockout': 'Stockout Rate', 'stock': 'Stockout Rate', 'inventory': 'Stockout Rate',
+  'churn': 'Customer Churn Rate', 'retention': 'Customer Churn Rate',
+  'revenue': 'Revenue', 'competitor': 'Competitor Activity', 'rider': 'Rider Availability',
+};
+
+function searchResults(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const results = [];
+
+  CITIES.forEach(c => {
+    if (c.toLowerCase().includes(q)) {
+      const d = DATA.cities[c];
+      results.push({
+        label: c,
+        sub: d.status === 'issue' ? `${d.severity} · ${d.primary_driver}` : 'Stable',
+        action: () => d.status === 'issue' ? goToRootCause(c) : (document.getElementById('inv-city').value = c, renderInvestigate(c), switchView('investigate')),
+      });
+    }
+  });
+
+  Object.keys(METRIC_KEYWORDS).forEach(key => {
+    if (key.includes(q) && results.length < 8) {
+      const label = METRIC_KEYWORDS[key];
+      if (!results.find(r => r.label === label)) {
+        results.push({ label, sub: 'Metric', action: () => switchView('investigate') });
+      }
+    }
+  });
+
+  if ('issues alerts problems'.includes(q) && q.length > 2) {
+    results.push({ label: 'Active alerts', sub: `${ISSUE_CITIES.length} issues detected`, action: () => switchView('command') });
+  }
+
+  return results.slice(0, 6);
+}
+
+function switchView(view) {
+  document.querySelectorAll('.navitem').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector(`.navitem[data-view="${view}"]`).classList.add('active');
+  document.getElementById('view-' + view).classList.add('active');
+}
+
+const searchInput = document.getElementById('topbar-search-input');
+const searchDropdown = document.getElementById('search-dropdown');
+
+searchInput.addEventListener('input', () => {
+  const results = searchResults(searchInput.value);
+  if (results.length === 0) { searchDropdown.style.display = 'none'; return; }
+  searchDropdown.innerHTML = results.map((r, i) => `
+    <div onclick="window.__searchResults[${i}].action()" style="padding:10px 14px;cursor:pointer;font-size:13px;
+         border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--panel2)'" onmouseout="this.style.background='transparent'">
+      <div style="font-weight:600;color:var(--text);">${r.label}</div>
+      <div style="color:var(--sub);font-size:11.5px;">${r.sub}</div>
+    </div>`).join('');
+  window.__searchResults = results;
+  searchDropdown.style.display = 'block';
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.topbar-search')) searchDropdown.style.display = 'none';
+});
+
+// ---------- INIT ----------
+document.getElementById('bell-badge').textContent = ISSUE_CITIES.length;
+renderKPIs();
+renderAlerts();
+renderCityGrid();
+populateCitySelects();
+document.getElementById('inv-city').value = 'Bhopal';
+renderInvestigate('Bhopal');
+document.getElementById('rc-city').value = 'Bhopal';
+renderRootCause('Bhopal');
+
+</script>
+</body>
+</html>
