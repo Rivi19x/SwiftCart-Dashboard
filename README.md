@@ -103,3 +103,30 @@ The dataset deliberately embeds **three real business problems** so the pipeline
 | **Pune** | Delivery times spike for 3 weeks | Sudden rider attrition (~45% drop in active riders) |
 | **Bhopal** | Revenue drops for 3 weeks | Recurring stockouts (~4.5x normal rate) |
 | **Bangalore** | Customer churn climbs steadily | A competitor launches in the market |
+
+### 📑Sample Deliverable: Executive Memo
+The system automatically generates actionable insights tailored for leadership review:
+1. **Bhopal** — stockout rate deviated +69% from baseline (est. revenue impact: -₹286,893)
+   **→ ACTION:** Audit inventory replenishment cadence; flag recurring stockout SKUs to supply chain.
+
+2. **Bangalore** — competitor activity deviated +19% from baseline
+   **→ ACTION:** Launch a targeted retention offer; benchmark pricing/delivery speed vs. competitor.
+
+3. **Pune** — delivery time deviated +22% from baseline
+   **→ ACTION:** Investigate rider attrition; deploy short-term surge incentive to restore SLAs.
+
+---
+
+## 💡 Methodology & Design Philosophy
+
+The architectural choices in this project reflect the realities of enterprise analytics:
+
+* **Explainable over Flashy:** Uses z-score rolling control charts over complex black-box models so analysts can transparently defend their methodology to stakeholders.
+* **Deterministic Insights:** Utilizes structured Natural Language Generation (NLG) templates rather than generative LLMs. This ensures recommendations are 100% reproducible, auditable, and free from hallucinations.
+* **Decision-Centric:** The final primary artifact is a prioritized, actionable memo designed specifically for executive review, rather than just a passive visualization.
+
+---
+## 🛠️ Technical Stack
+Core Analytics: Python (Pandas, NumPy, Scikit-Learn, SciPy for statistical testing)
+Environment: Jupyter Notebooks
+Visualization (Target): Power BI / Tableau
